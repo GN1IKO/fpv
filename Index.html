@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0e14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>FPV მარაგი</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+:root{
+  --bg:#0a0e14; --bg2:#0f1521; --card:#141b29; --card2:#1a2433;
+  --line:#222d40; --txt:#e8eef7; --dim:#7e8da3; --acc:#22d3a6;
+  --acc2:#3b82f6; --warn:#f59e0b; --bad:#ef4444; --good:#22c55e;
+  --r:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--txt);font-family:'Sora',sans-serif;overscroll-behavior:none}
+body{padding-bottom:90px}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,var(--bg) 70%,transparent);
+  padding:14px 16px 8px;backdrop-filter:blur(8px)}
+.htop{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:-.3px}
+.logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--acc),var(--acc2));
+  display:grid;place-items:center;font-size:15px}
+.sync{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:5px 10px;border-radius:20px;
+  background:var(--card);border:1px solid var(--line);color:var(--dim);cursor:pointer}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--dim)}
+.dot.on{background:var(--good);box-shadow:0 0 8px var(--good)}
+.dot.off{background:var(--warn)}
+.search{width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:13px 16px;color:var(--txt);font-size:15px;font-family:inherit;outline:none}
+.search:focus{border-color:var(--acc)}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:6px 16px 12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.stat .lbl{font-size:11px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.stat .val{font-size:22px;font-weight:800;margin-top:4px;letter-spacing:-.5px}
+.stat.wide{grid-column:span 2}
+.stat .val.pos{color:var(--good)} .stat .val.neg{color:var(--bad)}
+
+/* CHIPS */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:0 16px 12px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:8px 15px;border-radius:20px;background:var(--card);border:1px solid var(--line);
+  font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;white-space:nowrap}
+.chip.act{background:var(--acc);color:#04130f;border-color:var(--acc)}
+
+/* LIST */
+.list{padding:0 16px;display:flex;flex-direction:column;gap:10px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;
+  display:flex;gap:12px;align-items:center;cursor:pointer;transition:.15s}
+.item:active{transform:scale(.99);background:var(--card2)}
+.item .ic{width:44px;height:44px;border-radius:12px;background:var(--bg2);display:grid;place-items:center;
+  font-size:20px;flex:none}
+.item .mid{flex:1;min-width:0}
+.item .nm{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .sub{font-size:12px;color:var(--dim);margin-top:3px;display:flex;gap:10px}
+.item .rt{text-align:right;flex:none}
+.item .price{font-weight:800;font-size:17px}
+.item .qty{font-size:12px;margin-top:3px;font-weight:600}
+.q-ok{color:var(--dim)} .q-low{color:var(--warn)} .q-zero{color:var(--bad)}
+.empty{text-align:center;padding:50px 20px;color:var(--dim)}
+
+/* NAV */
+nav{position:fixed;bottom:0;left:0;right:0;z-index:60;background:var(--bg2);border-top:1px solid var(--line);
+  display:flex;justify-content:space-around;padding:8px 0 max(8px,env(safe-area-inset-bottom));backdrop-filter:blur(12px)}
+.nav-b{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--dim);font-size:10px;font-weight:600;
+  padding:6px 14px;cursor:pointer;border-radius:12px}
+.nav-b svg{width:22px;height:22px}
+.nav-b.act{color:var(--acc)}
+
+/* FAB */
+.fab{position:fixed;right:18px;bottom:84px;z-index:55;width:56px;height:56px;border-radius:18px;border:none;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));color:#04130f;font-size:30px;font-weight:700;
+  box-shadow:0 8px 24px rgba(34,211,166,.35);cursor:pointer;display:grid;place-items:center}
+.fab:active{transform:scale(.92)}
+
+/* SHEET / MODAL */
+.ov{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);
+  display:none;align-items:flex-end;justify-content:center}
+.ov.open{display:flex}
+.sheet{width:100%;max-width:520px;background:var(--bg2);border-radius:24px 24px 0 0;border:1px solid var(--line);
+  border-bottom:none;max-height:92vh;overflow-y:auto;padding:8px 18px 30px;animation:up .25s ease}
+@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.grip{width:40px;height:4px;background:var(--line);border-radius:4px;margin:8px auto 16px}
+.sheet h2{font-size:19px;margin-bottom:16px;letter-spacing:-.3px}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:12px;color:var(--dim);font-weight:600;margin-bottom:6px}
+.fld input,.fld select,.fld textarea{width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:13px 14px;color:var(--txt);font-size:15px;font-family:inherit;outline:none}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--acc)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{width:100%;padding:15px;border:none;border-radius:14px;font-size:15px;font-weight:700;font-family:inherit;
+  cursor:pointer;margin-top:6px}
+.btn-pri{background:var(--acc);color:#04130f}
+.btn-sec{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+.btn-bad{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.calc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:6px;
+  display:flex;justify-content:space-between;font-size:14px}
+.calc b{font-size:18px}
+
+/* SELL controls */
+.stepper{display:flex;align-items:center;gap:14px;justify-content:center;margin:8px 0}
+.stepper button{width:48px;height:48px;border-radius:14px;border:1px solid var(--line);background:var(--card2);
+  color:var(--txt);font-size:24px;cursor:pointer}
+.stepper .n{font-size:32px;font-weight:800;min-width:60px;text-align:center}
+
+/* HISTORY */
+.hrow{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 14px;
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.hrow .hl{font-weight:700;font-size:14px}
+.hrow .hd{font-size:11px;color:var(--dim);margin-top:2px}
+.hrow .hr{text-align:right}
+.tag{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px}
+.tag.sell{background:rgba(34,197,94,.15);color:var(--good)}
+.tag.buy{background:rgba(59,130,246,.15);color:var(--acc2)}
+.tag.add{background:rgba(34,211,166,.15);color:var(--acc)}
+.tag.edit{background:rgba(245,158,11,.15);color:var(--warn)}
+.tag.del{background:rgba(239,68,68,.15);color:var(--bad)}
+.toast{position:fixed;bottom:160px;left:50%;transform:translateX(-50%);background:var(--card2);
+  border:1px solid var(--acc);color:var(--txt);padding:12px 20px;border-radius:14px;font-size:14px;font-weight:600;
+  z-index:200;opacity:0;transition:.3s;pointer-events:none}
+.toast.show{opacity:1}
+.fbnote{font-size:12px;color:var(--dim);line-height:1.6;background:var(--card);padding:12px;border-radius:12px;margin-bottom:14px}
+.fbnote code{color:var(--acc);font-family:'JetBrains Mono',monospace;font-size:11px}
+.sec-t{font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin:18px 16px 8px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="htop">
+    <div class="brand"><div class="logo">🚁</div> FPV მარაგი</div>
+    <div class="sync" onclick="openSync()"><span class="dot off" id="syncDot"></span><span id="syncTxt">ლოკალური</span></div>
+  </div>
+  <input class="search" id="search" placeholder="🔍 ძებნა..." oninput="render()">
+</header>
+
+<!-- VIEW: HOME -->
+<div id="view-home">
+  <div class="stats">
+    <div class="stat"><div class="lbl">საწყობის ღირებულება</div><div class="val mono" id="sStock">0₾</div></div>
+    <div class="stat"><div class="lbl">პოტენც. მოგება</div><div class="val mono pos" id="sPot">0₾</div></div>
+    <div class="stat"><div class="lbl">სულ გაყიდვა</div><div class="val mono" id="sRev">0₾</div></div>
+    <div class="stat"><div class="lbl">რეალური მოგება</div><div class="val mono" id="sProf">0₾</div></div>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="list" id="list"></div>
+</div>
+
+<!-- VIEW: HISTORY -->
+<div id="view-hist" style="display:none">
+  <div class="sec-t">ყველა მოქმედება</div>
+  <div class="chips" id="histChips"></div>
+  <div class="list" id="histList"></div>
+</div>
+
+<button class="fab" onclick="openEdit(null)">+</button>
+
+<nav>
+  <div class="nav-b act" id="nav-home" onclick="go('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>მარაგი</div>
+  <div class="nav-b" id="nav-hist" onclick="go('hist')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>ისტორია</div>
+</nav>
+
+<!-- EDIT SHEET -->
+<div class="ov" id="ovEdit">
+  <div class="sheet">
+    <div class="grip"></div>
+    <h2 id="editTitle">ახალი ნივთი</h2>
+    <div class="fld"><label>დასახელება</label><input id="f_name" placeholder="მაგ. Radiomaster Pocket"></div>
+    <div class="fld"><label>კატეგორია</label>
+      <select id="f_cat">
+        <option>პულტი</option><option>დრონი</option><option>სატენი</option>
+        <option>ბატარეა</option><option>სათვალე</option><option>ინვენტარი</option><option>სხვა</option>
+      </select></div>
+    <div class="row2">
+      <div class="fld"><label>თვითღირებულება ₾</label><input id="f_cost" type="number" inputmode="decimal" oninput="liveCalc()"></div>
+      <div class="fld"><label>გასაყიდი ფასი ₾</label><input id="f_price" type="number" inputmode="decimal" oninput="liveCalc()"></div>
+    </div>
+    <div class="fld"><label>რაოდენობა</label><input id="f_qty" type="number" inputmode="numeric"></div>
+    <div class="fld"><label>შენიშვნა</label><textarea id="f_notes" rows="2"></textarea></div>
+    <div class="calc"><span>მოგება ცალზე</span><b class="mono" id="cMargin">0₾</b></div>
+    <button class="btn btn-pri" onclick="saveItem()">შენახვა</button>
+    <button class="btn btn-bad" id="delBtn" onclick="delItem()" style="display:none">წაშლა</button>
+  </div>
+</div>
+
+<!-- ITEM ACTION SHEET -->
+<div class="ov" id="ovItem">
+  <div class="sheet">
+    <div class="grip"></div>
+    <h2 id="iTitle">—</h2>
+    <div class="stats" style="padding:0 0 14px">
+      <div class="stat"><div class="lbl">ფასი</div><div class="val mono" id="iPrice">—</div></div>
+      <div class="stat"><div class="lbl">მარაგში</div><div class="val mono" id="iQty">—</div></div>
+      <div class="stat"><div class="lbl">თვითღირ.</div><div class="val mono" id="iCost">—</div></div>
+      <div class="stat"><div class="lbl">მოგება/ცალი</div><div class="val mono pos" id="iMar">—</div></div>
+    </div>
+    <div id="iNotes" class="fbnote" style="display:none"></div>
+    <div class="btn-row">
+      <button class="btn btn-pri" onclick="openSell()">💰 გაყიდვა</button>
+      <button class="btn btn-sec" onclick="openBuy()">📥 შემოსვლა</button>
+    </div>
+    <button class="btn btn-sec" onclick="openEdit(currentId)" style="margin-top:10px">✏️ რედაქტირება</button>
+  </div>
+</div>
+
+<!-- SELL/BUY SHEET -->
+<div class="ov" id="ovTxn">
+  <div class="sheet">
+    <div class="grip"></div>
+    <h2 id="tTitle">გაყიდვა</h2>
+    <div class="fld"><label id="tNameL">—</label></div>
+    <div class="stepper">
+      <button onclick="stepQ(-1)">−</button>
+      <div class="n mono" id="tQ">1</div>
+      <button onclick="stepQ(1)">+</button>
+    </div>
+    <div class="fld" id="tPriceWrap"><label>ცალის ფასი ₾</label><input id="t_price" type="number" inputmode="decimal" oninput="txnCalc()"></div>
+    <div class="calc"><span id="tSumL">სულ თანხა</span><b class="mono" id="tSum">0₾</b></div>
+    <div class="calc" id="tProfWrap"><span>მოგება</span><b class="mono pos" id="tProf">0₾</b></div>
+    <button class="btn btn-pri" id="tConfirm" onclick="confirmTxn()">დადასტურება</button>
+  </div>
+</div>
+
+<!-- SYNC SHEET -->
+<div class="ov" id="ovSync">
+  <div class="sheet">
+    <div class="grip"></div>
+    <h2>🔄 სინქრონიზაცია</h2>
+    <div class="fbnote">
+      <b>როგორ ჩავრთო Firebase (ერთხელ):</b><br>
+      1. გადადი <code>console.firebase.google.com</code><br>
+      2. შექმენი პროექტი → Build → <b>Realtime Database</b> → Create<br>
+      3. Project Settings → Web app (&lt;/&gt;) → დააკოპირე config<br>
+      4. ჩასვი ქვემოთ მთლიანი <code>{...}</code> ობიექტი და შეინახე<br>
+      5. იგივე config ჩასვი მეორე ტელეფონზეც → ავტომატურად დასინქდება
+    </div>
+    <div class="fld"><label>Firebase config (JSON)</label>
+      <textarea id="f_fb" rows="7" placeholder='{"apiKey":"...","databaseURL":"https://...","projectId":"..."}'></textarea></div>
+    <div class="fld"><label>საერთო სივრცის სახელი (ორივეს ერთი ეწეროს)</label>
+      <input id="f_room" placeholder="მაგ. fpv-shop"></div>
+    <button class="btn btn-pri" onclick="saveSync()">დაკავშირება</button>
+    <button class="btn btn-sec" onclick="exportData()" style="margin-top:10px">⬇️ ფაილად გადმოწერა (backup)</button>
+    <label class="btn btn-sec" style="margin-top:10px;text-align:center;display:block">⬆️ ფაილიდან აღდგენა
+      <input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
+    <button class="btn btn-sec" onclick="closeAll()" style="margin-top:10px">დახურვა</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- STATE ---------- */
+const ICONS={"პულტი":"🎮","დრონი":"🚁","სატენი":"🔌","ბატარეა":"🔋","სათვალე":"🥽","ინვენტარი":"📦","სხვა":"🏷️"};
+const LOW=10;
+let DB={items:[], txns:[]};
+let filter="all", currentId=null, txnMode="sell", txnQ=1;
+let fb=null, fbRef=null, applyingRemote=false;
+
+const SEED=[
+ {"id":1,"name":"Radiomaster Pocket ELRS","category":"პულტი","cost":160,"price":250,"qty":8,"notes":""},
+ {"id":2,"name":"Radiomaster Boxer ELRS","category":"პულტი","cost":400,"price":600,"qty":3,"notes":""},
+ {"id":3,"name":"Radiomaster GX 12 ELRS","category":"პულტი","cost":450,"price":700,"qty":1,"notes":""},
+ {"id":4,"name":"BetaFPV AIR 65 ELRS","category":"დრონი","cost":285,"price":370,"qty":2,"notes":""},
+ {"id":5,"name":"ToolkitRC M7ac","category":"სატენი","cost":160,"price":250,"qty":1,"notes":""},
+ {"id":6,"name":"ToolkitRC M8D","category":"სატენი","cost":290,"price":370,"qty":1,"notes":""},
+ {"id":7,"name":"VIFLY whoopstor3","category":"სატენი","cost":100,"price":150,"qty":4,"notes":""},
+ {"id":9,"name":"TATTU 1S 300mAh","category":"ბატარეა","cost":10,"price":15,"qty":10,"notes":""},
+ {"id":10,"name":"LAVA 1S 300mAh","category":"ბატარეა","cost":15,"price":20,"qty":0,"notes":""},
+ {"id":11,"name":"გეითი ოთკუთხედი","category":"ინვენტარი","cost":43,"price":0,"qty":2,"notes":""},
+ {"id":12,"name":"გეითი ოთკუთხედი ფეხებით","category":"ინვენტარი","cost":60,"price":0,"qty":2,"notes":""},
+ {"id":13,"name":"გეითი წრე","category":"ინვენტარი","cost":15,"price":0,"qty":3,"notes":""},
+ {"id":14,"name":"გეითი წრე ფეხებით","category":"ინვენტარი","cost":30,"price":0,"qty":2,"notes":""}
+];
+
+/* ---------- PERSIST ---------- */
+function load(){
+  try{
+    const raw=localStorage.getItem("fpv_db");
+    if(raw){DB=JSON.parse(raw);}
+    else{DB={items:SEED, txns:[]}; save();}
+  }catch(e){DB={items:SEED, txns:[]};}
+}
+function save(push=true){
+  localStorage.setItem("fpv_db",JSON.stringify(DB));
+  if(push && fbRef && !applyingRemote){
+    fbRef.set({...DB, _ts:Date.now()}).catch(()=>{});
+  }
+  render();
+}
+function nextId(){return DB.items.reduce((m,i)=>Math.max(m,i.id),0)+1;}
+
+/* ---------- FIREBASE (optional) ---------- */
+function initFirebase(){
+  const cfgRaw=localStorage.getItem("fpv_fb"), room=localStorage.getItem("fpv_room")||"fpv-shop";
+  if(!cfgRaw) return setSync(false);
+  loadScript("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js",()=>{
+    loadScript("https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js",()=>{
+      try{
+        const cfg=JSON.parse(cfgRaw);
+        if(!firebase.apps.length) firebase.initializeApp(cfg);
+        fb=firebase.database();
+        fbRef=fb.ref("rooms/"+room);
+        fbRef.on("value",snap=>{
+          const v=snap.val();
+          if(v && v.items){applyingRemote=true; DB={items:v.items||[],txns:v.txns||[]};
+            localStorage.setItem("fpv_db",JSON.stringify(DB)); applyingRemote=false; render();}
+          setSync(true);
+        },()=>setSync(false));
+        // push local up if remote empty
+        fbRef.once("value",s=>{if(!s.val()) fbRef.set({...DB,_ts:Date.now()});});
+      }catch(e){setSync(false); toast("Firebase config შეცდომა");}
+    });
+  });
+}
+function loadScript(src,cb){const s=document.createElement("script");s.src=src;s.onload=cb;s.onerror=()=>setSync(false);document.head.appendChild(s);}
+function setSync(on){
+  document.getElementById("syncDot").className="dot "+(on?"on":(localStorage.getItem("fpv_fb")?"off":"off"));
+  document.getElementById("syncTxt").textContent=on?"სინქი ✓":"ლოკალური";
+}
+
+/* ---------- RENDER ---------- */
+function money(n){return (Math.round(n*100)/100).toLocaleString("ka-GE")+"₾";}
+function render(){
+  const q=(document.getElementById("search").value||"").toLowerCase();
+  // stats
+  let stock=0,pot=0,rev=0,prof=0;
+  DB.items.forEach(i=>{stock+=i.cost*i.qty; if(i.price>0) pot+=(i.price-i.cost)*i.qty;});
+  DB.txns.forEach(t=>{if(t.type==="sell"){rev+=t.total; prof+=t.profit;}});
+  document.getElementById("sStock").textContent=money(stock);
+  document.getElementById("sPot").textContent=money(pot);
+  document.getElementById("sRev").textContent=money(rev);
+  const pe=document.getElementById("sProf"); pe.textContent=money(prof);
+  pe.className="val mono "+(prof>=0?"pos":"neg");
+  // chips
+  const cats=["all",...new Set(DB.items.map(i=>i.category))];
+  document.getElementById("chips").innerHTML=cats.map(c=>
+    `<div class="chip ${filter===c?'act':''}" onclick="setF('${c}')">${c==='all'?'ყველა':c}</div>`).join("");
+  // list
+  let items=DB.items.filter(i=>i.name.toLowerCase().includes(q));
+  if(filter!=="all") items=items.filter(i=>i.category===filter);
+  items.sort((a,b)=>a.name.localeCompare(b.name,"ka"));
+  const el=document.getElementById("list");
+  if(!items.length){el.innerHTML='<div class="empty">ნივთი ვერ მოიძებნა</div>';return;}
+  el.innerHTML=items.map(i=>{
+    const qc=i.qty<=0?"q-zero":(i.qty<LOW?"q-low":"q-ok");
+    const mar=i.price>0?`+${money(i.price-i.cost)}`:"—";
+    return `<div class="item" onclick="openItem(${i.id})">
+      <div class="ic">${ICONS[i.category]||"🏷️"}</div>
+      <div class="mid"><div class="nm">${esc(i.name)}</div>
+        <div class="sub"><span>${i.category}</span><span class="mono">${mar}</span></div></div>
+      <div class="rt"><div class="price mono">${i.price>0?money(i.price):"—"}</div>
+        <div class="qty mono ${qc}">×${i.qty}</div></div>
+    </div>`;}).join("");
+}
+const TXN_META={
+  sell:{label:"გაყიდვა",cls:"sell"}, buy:{label:"შემოსვლა",cls:"buy"},
+  add:{label:"დამატება",cls:"add"}, edit:{label:"ცვლილება",cls:"edit"},
+  del:{label:"წაშლა",cls:"del"}
+};
+let histFilter="all";
+function renderHist(){
+  const el=document.getElementById("histList");
+  // filter chips
+  const fc=document.getElementById("histChips");
+  if(fc){
+    const opts=[["all","ყველა"],["sell","გაყიდვა"],["buy","შემოსვლა"],["add","დამატება"],["edit","ცვლილება"],["del","წაშლა"]];
+    fc.innerHTML=opts.map(([k,l])=>`<div class="chip ${histFilter===k?'act':''}" onclick="setHF('${k}')">${l}</div>`).join("");
+  }
+  let ts=[...DB.txns].sort((a,b)=>b.t-a.t);
+  if(histFilter!=="all") ts=ts.filter(t=>t.type===histFilter);
+  if(!ts.length){el.innerHTML='<div class="empty">ჩანაწერი არ არის</div>';return;}
+  el.innerHTML=ts.map(t=>{
+    const m=TXN_META[t.type]||{label:t.type,cls:"add"};
+    const it=DB.items.find(x=>x.id===t.itemId);
+    const nm=it?it.name:(t.name||"წაშლილი");
+    const d=new Date(t.t).toLocaleString("ka-GE",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"});
+    const isMoney=(t.type==="sell"||t.type==="buy");
+    const sub=isMoney?`×${t.qty}`:(t.detail||"");
+    let right="";
+    if(isMoney){
+      right=`<div class="mono" style="font-weight:800">${money(t.total)}</div>`+
+        (t.type==="sell"?`<div class="mono" style="font-size:12px;color:var(--good)">+${money(t.profit)}</div>`:"");
+    }
+    return `<div class="hrow"><div style="flex:1;min-width:0"><div class="hl">${esc(nm)}</div>
+      <div class="hd">${d} • <span class="tag ${m.cls}">${m.label}</span> ${esc(sub)}</div></div>
+      <div class="hr">${right}</div></div>`;
+  }).join("");
+}
+function setHF(k){histFilter=k;renderHist();}
+function esc(s){return (s+"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+
+/* ---------- NAV ---------- */
+function go(v){
+  document.getElementById("view-home").style.display=v==="home"?"":"none";
+  document.getElementById("view-hist").style.display=v==="hist"?"":"none";
+  document.getElementById("nav-home").classList.toggle("act",v==="home");
+  document.getElementById("nav-hist").classList.toggle("act",v==="hist");
+  if(v==="hist") renderHist();
+}
+function setF(c){filter=c;render();}
+
+/* ---------- EDIT ---------- */
+function openEdit(id){
+  closeAll();currentId=id;
+  const it=id?DB.items.find(i=>i.id===id):null;
+  document.getElementById("editTitle").textContent=it?"რედაქტირება":"ახალი ნივთი";
+  document.getElementById("f_name").value=it?it.name:"";
+  document.getElementById("f_cat").value=it?it.category:"პულტი";
+  document.getElementById("f_cost").value=it?it.cost:"";
+  document.getElementById("f_price").value=it?it.price:"";
+  document.getElementById("f_qty").value=it?it.qty:"";
+  document.getElementById("f_notes").value=it?(it.notes||""):"";
+  document.getElementById("delBtn").style.display=it?"":"none";
+  liveCalc();
+  document.getElementById("ovEdit").classList.add("open");
+}
+function liveCalc(){
+  const c=+document.getElementById("f_cost").value||0, p=+document.getElementById("f_price").value||0;
+  document.getElementById("cMargin").textContent=money(p-c);
+}
+function saveItem(){
+  const name=document.getElementById("f_name").value.trim();
+  if(!name)return toast("შეიყვანე დასახელება");
+  const obj={
+    name, category:document.getElementById("f_cat").value,
+    cost:+document.getElementById("f_cost").value||0,
+    price:+document.getElementById("f_price").value||0,
+    qty:+document.getElementById("f_qty").value||0,
+    notes:document.getElementById("f_notes").value.trim()
+  };
+  if(currentId){
+    const old=DB.items.find(i=>i.id===currentId);
+    const diffs=[];
+    if(old.price!==obj.price) diffs.push(`ფასი ${old.price}→${obj.price}₾`);
+    if(old.cost!==obj.cost) diffs.push(`თვითღ. ${old.cost}→${obj.cost}₾`);
+    if(old.qty!==obj.qty) diffs.push(`რაოდ. ${old.qty}→${obj.qty}`);
+    if(old.name!==obj.name) diffs.push(`სახელი→${obj.name}`);
+    if(old.category!==obj.category) diffs.push(`კატ.→${obj.category}`);
+    Object.assign(old,obj);
+    DB.txns.push({t:Date.now(),type:"edit",itemId:currentId,name:obj.name,
+      detail:diffs.length?diffs.join(", "):"შენიშვნა განახლდა"});
+  }else{
+    obj.id=nextId();DB.items.push(obj);
+    DB.txns.push({t:Date.now(),type:"add",itemId:obj.id,name:obj.name,
+      detail:`ფასი ${obj.price}₾ • რაოდ. ${obj.qty}`});
+  }
+  save();closeAll();toast("შენახულია ✓");
+}
+function delItem(){
+  if(!confirm("ნამდვილად წავშალო?"))return;
+  const it=DB.items.find(i=>i.id===currentId);
+  DB.txns.push({t:Date.now(),type:"del",itemId:currentId,name:it?it.name:"—",
+    detail:it?`იყო ${it.qty} ცალი`:""});
+  DB.items=DB.items.filter(i=>i.id!==currentId);
+  save();closeAll();toast("წაიშალა");
+}
+
+/* ---------- ITEM ACTIONS ---------- */
+function openItem(id){
+  closeAll();currentId=id;
+  const it=DB.items.find(i=>i.id===id);if(!it)return;
+  document.getElementById("iTitle").textContent=it.name;
+  document.getElementById("iPrice").textContent=it.price>0?money(it.price):"—";
+  document.getElementById("iQty").textContent="×"+it.qty;
+  document.getElementById("iCost").textContent=money(it.cost);
+  document.getElementById("iMar").textContent=it.price>0?money(it.price-it.cost):"—";
+  const nt=document.getElementById("iNotes");
+  if(it.notes){nt.style.display="";nt.textContent="📝 "+it.notes;}else nt.style.display="none";
+  document.getElementById("ovItem").classList.add("open");
+}
+function openSell(){txnMode="sell";openTxn();}
+function openBuy(){txnMode="buy";openTxn();}
+function openTxn(){
+  closeAll();
+  const it=DB.items.find(i=>i.id===currentId);txnQ=1;
+  document.getElementById("tTitle").textContent=txnMode==="sell"?"💰 გაყიდვა":"📥 შემოსვლა";
+  document.getElementById("tNameL").textContent=it.name+(txnMode==="sell"?` (მარაგში: ${it.qty})`:"");
+  document.getElementById("t_price").value=txnMode==="sell"?it.price:it.cost;
+  document.getElementById("tProfWrap").style.display=txnMode==="sell"?"":"none";
+  document.getElementById("tSumL").textContent=txnMode==="sell"?"სულ თანხა":"სულ ხარჯი";
+  document.getElementById("tQ").textContent=txnQ;
+  txnCalc();
+  document.getElementById("ovTxn").classList.add("open");
+}
+function stepQ(d){txnQ=Math.max(1,txnQ+d);document.getElementById("tQ").textContent=txnQ;txnCalc();}
+function txnCalc(){
+  const it=DB.items.find(i=>i.id===currentId);
+  const pr=+document.getElementById("t_price").value||0;
+  const sum=pr*txnQ;
+  document.getElementById("tSum").textContent=money(sum);
+  if(txnMode==="sell") document.getElementById("tProf").textContent=money((pr-it.cost)*txnQ);
+}
+function confirmTxn(){
+  const it=DB.items.find(i=>i.id===currentId);
+  const pr=+document.getElementById("t_price").value||0;
+  if(txnMode==="sell"){
+    if(txnQ>it.qty)return toast("მარაგში არ არის საკმარისი");
+    it.qty-=txnQ;
+    DB.txns.push({t:Date.now(),type:"sell",itemId:it.id,name:it.name,qty:txnQ,
+      price:pr,total:pr*txnQ,profit:(pr-it.cost)*txnQ});
+    toast("გაიყიდა ✓");
+  }else{
+    it.qty+=txnQ;
+    if(pr>0) it.cost=pr; // update cost to latest buy price
+    DB.txns.push({t:Date.now(),type:"buy",itemId:it.id,name:it.name,qty:txnQ,price:pr,total:pr*txnQ});
+    toast("დაემატა მარაგში ✓");
+  }
+  save();closeAll();
+}
+
+/* ---------- SYNC ---------- */
+function openSync(){closeAll();
+  document.getElementById("f_fb").value=localStorage.getItem("fpv_fb")||"";
+  document.getElementById("f_room").value=localStorage.getItem("fpv_room")||"";
+  document.getElementById("ovSync").classList.add("open");}
+function saveSync(){
+  const cfg=document.getElementById("f_fb").value.trim();
+  const room=document.getElementById("f_room").value.trim()||"fpv-shop";
+  if(cfg){try{JSON.parse(cfg);}catch(e){return toast("config არასწორი JSON-ია");}}
+  localStorage.setItem("fpv_fb",cfg);localStorage.setItem("fpv_room",room);
+  toast("ვუკავშირდები...");closeAll();setTimeout(()=>location.reload(),700);
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="fpv_backup_"+new Date().toISOString().slice(0,10)+".json";a.click();
+}
+function importData(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);
+    if(d.items){DB=d;DB.txns=DB.txns||[];save();closeAll();toast("აღდგა ✓");}else toast("ფაილი არასწორია");}
+    catch(x){toast("ფაილი ვერ წავიკითხე");}};r.readAsText(f);
+}
+
+/* ---------- UTIL ---------- */
+function closeAll(){document.querySelectorAll(".ov").forEach(o=>o.classList.remove("open"));}
+document.querySelectorAll(".ov").forEach(o=>o.addEventListener("click",e=>{if(e.target===o)closeAll();}));
+let tt;function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");
+  clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),1800);}
+
+/* ---------- BOOT ---------- */
+load();render();initFirebase();
+if('serviceWorker' in navigator){
+  const sw=`self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('fetch',e=>{});`;
+  const blob=new Blob([sw],{type:'text/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+}
+</script>
+</body>
+</html>
